@@ -2,7 +2,7 @@
     Pydantic response models
 """
 
-ffrom pydantic import BaseModel
+from pydantic import BaseModel
 from typing import List, Dict, Any
 from app.models.passenger import Passenger
 

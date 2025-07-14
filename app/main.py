@@ -87,9 +87,9 @@ def root() -> APIInfoResponse:
     """
 
     return APIInfoResponse(
-        "message": "Titanic Passenger Data API",
-        "version": "1.0.0",
-        "docs": "/docs"
+        message="Titanic Passenger Data API",
+        version="1.0.0",
+        docs="/docs"
     )
 
 @app.exception_handler(ValidationError)
