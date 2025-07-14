@@ -5,9 +5,8 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import List, Optional
 
-from app.models.responses import HistogramResponse, PassengersListResponse
+from app.models.responses import HistogramResponse, PassengersListResponse, PassengerResponse, PassengerAttributesResponse
 from app.services.data_service import DataService
 from app.services.analytics_service import AnalyticsService
 from app.api.dependencies import get_data_service, get_analytics_service
@@ -35,12 +34,12 @@ async def get_all_passengers(
     )
 
 
-@passengers_router.get("/{passenger_id}")
+@passengers_router.get("/{passenger_id}", response_model=PassengerResponse | PassengerAttributesResponse)
 async def get_passenger(
     passenger_id: int,
     attributes: list = Query([], description="Optional list of specific attributes to retrieve"),
     data_service: DataService = Depends(get_data_service)
-) -> dict:
+) -> PassengerResponse | PassengerAttributesResponse:
     """
         Get passenger by ID. Optionally specify attributes to get only those fields
     """
@@ -52,11 +51,11 @@ async def get_passenger(
         raise HTTPException(status_code=404, detail="Passenger not found")
     
     if not attributes:
-        return {"data": passenger.model_dump()}
+        return PassengerResponse(data=passenger)
     
     result = data_service.get_passenger_attributes(passenger_id, attributes)
 
-    return {"data": result}
+    return PassengerAttributesResponse(data=result)
 
 
 @passengers_router.get("/analytics/fare-histogram", response_model=HistogramResponse)

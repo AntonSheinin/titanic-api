@@ -24,8 +24,6 @@ class DataLoader(ABC):
             Load data and return (data, columns)
         """
         
-        pass
-
 
 class CSVDataLoader(DataLoader):
     """
@@ -50,11 +48,11 @@ class CSVDataLoader(DataLoader):
                 return data, columns
                 
         except FileNotFoundError:
-            logger.error(f"CSV file not found: {csv_path}")
+            logger.exception(f"CSV file not found: {csv_path}")
             raise ValueError(f"CSV file not found: {csv_path}")
         
         except Exception as exc:
-            logger.error(f"Error reading CSV file: {exc}")
+            logger.exception(f"Error reading CSV file: {exc}")
             raise ValueError(f"Error reading CSV file: {exc}")
     
     def _convert_types(self, row: dict) -> None:
@@ -112,7 +110,7 @@ class SQLiteDataLoader(DataLoader):
                 return data, columns
                 
         except Exception as exc:
-            logger.error(f"Error reading SQLite database: {exc}")
+            logger.exception(f"Error reading SQLite database: {exc}")
             raise ValueError(f"Error reading SQLite database: {exc}")
 
 
@@ -203,7 +201,7 @@ class DataService:
                     return Passenger(**row)
                 
                 except Exception as exc:
-                    logger.warning(f"Invalid passenger data for ID {passenger_id}: {exc}")
+                    logger.exception(f"Invalid passenger data for ID {passenger_id}: {exc}")
                     return None
                 
         return None

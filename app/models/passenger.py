@@ -6,6 +6,10 @@ from pydantic import BaseModel
 
 
 class Passenger(BaseModel):
+    """
+        Passenger model
+    """
+
     PassengerId: int
     Survived: int
     Pclass: int

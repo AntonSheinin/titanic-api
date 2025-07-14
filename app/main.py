@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
+from app.models.responses import APIInfoResponse
 from app.api.endpoints.passengers import passengers_router
 from app.api.dependencies import get_data_service
 
@@ -34,7 +35,7 @@ async def lifespan(app: FastAPI):
         logger.info("Application startup completed successfully")
         
     except Exception as exc:
-        logger.error(f"Failed to start application: {exc}")
+        logger.exception(f"Failed to start application: {exc}")
         raise
     
     yield
@@ -51,9 +52,11 @@ def validate_configuration() -> None:
     percentiles = int(os.getenv("DEFAULT_HISTOGRAM_PERCENTILES", "10"))
     
     if percentiles not in range(5, 101):
+        logger.error("DEFAULT_HISTOGRAM_PERCENTILES must be between 1 and 100")
         raise ValueError("DEFAULT_HISTOGRAM_PERCENTILES must be between 1 and 100")
     
     if data_source not in ["csv", "sqlite"]:
+        logger.error(f"Unsupported DATA_SOURCE: {data_source}")
         raise ValueError(f"Unsupported DATA_SOURCE: {data_source}")
     
     logger.info(f"Configuration validated: data_source={data_source}")
@@ -77,20 +80,24 @@ def create_app() -> FastAPI:
 
 app = create_app()
 
-@app.get("/")
-def root():
+@app.get("/", response_model=APIInfoResponse)
+def root() -> APIInfoResponse:
     """
         Root endpoint
     """
 
-    return {
+    return APIInfoResponse(
         "message": "Titanic Passenger Data API",
         "version": "1.0.0",
         "docs": "/docs"
-    }
+    )
 
 @app.exception_handler(ValidationError)
 def validation_exception_handler(request, exc: ValidationError):
+    """
+        Validation error handler
+    """
+
     return JSONResponse(
         status_code=422,
         content={"detail": "Validation error", "errors": exc.errors()}
@@ -98,6 +105,10 @@ def validation_exception_handler(request, exc: ValidationError):
 
 @app.exception_handler(ValueError)
 def value_error_handler(request, exc: ValueError):
+    """
+        Value error handler
+    """
+
     return JSONResponse(
         status_code=400,
         content={"detail": str(exc)}
