@@ -1,5 +1,8 @@
+"""
+    Pydantic models   
+"""
+
 from pydantic import BaseModel
-from typing import Optional
 
 
 class Passenger(BaseModel):
@@ -8,10 +11,10 @@ class Passenger(BaseModel):
     Pclass: int
     Name: str
     Sex: str
-    Age: Optional[float] = None
+    Age: float | None = None
     SibSp: int
     Parch: int
     Ticket: str
-    Fare: Optional[float] = None
-    Cabin: Optional[str] = None
-    Embarked: Optional[str] = None
+    Fare: float | None = None
+    Cabin: str | None = None
+    Embarked: str | None = None

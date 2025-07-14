@@ -1,3 +1,7 @@
+"""
+    Pydantic response models
+"""
+
 from pydantic import BaseModel
 from typing import List, Dict, Any
 
@@ -11,10 +15,6 @@ class HistogramData(BaseModel):
 class HistogramResponse(BaseModel):
     data: List[HistogramData]
     total_passengers: int
-
-
-class PassengerAttributesResponse(BaseModel):
-    data: Dict[str, Any]
 
 
 class PassengersListResponse(BaseModel):
