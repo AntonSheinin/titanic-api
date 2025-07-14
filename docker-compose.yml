@@ -1,0 +1,27 @@
+services:
+  titanic-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - HOST=0.0.0.0
+    volumes:
+      - titanic-data:/data
+    depends_on:
+      - titanic-data
+    restart: unless-stopped
+
+  titanic-data:
+    build:
+      context: .
+      dockerfile: Dockerfile.${DATA_SOURCE:-csv}
+    volumes:
+      - titanic-data:/data
+    command: ["tail", "-f", "/dev/null"]
+
+volumes:
+  titanic-data:
