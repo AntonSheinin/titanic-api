@@ -9,19 +9,19 @@ services:
       - .env
     environment:
       - HOST=0.0.0.0
-    volumes:
-      - titanic-data:/data
     depends_on:
       - titanic-data
     restart: unless-stopped
+    volumes:
+      - titanic-data:/data
 
   titanic-data:
     build:
       context: .
       dockerfile: Dockerfile.${DATA_SOURCE:-csv}
+    command: ["sh", "-c", "cp /seed/titanic.db /data/titanic.db"]
     volumes:
       - titanic-data:/data
-    command: ["tail", "-f", "/dev/null"]
-
+    
 volumes:
   titanic-data:

@@ -3,10 +3,18 @@
 """
 
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.models.responses import HistogramResponse, PassengersListResponse, PassengerResponse, PassengerAttributesResponse
+from app.schemas.responses import (
+    HistogramResponse,
+    PassengersListResponse,
+    PassengerResponse,
+    PassengerAttributesResponse,
+    Passenger
+)
+from app.schemas.validators import validate_attributes
 from app.services.data_service import DataService
 from app.services.analytics_service import AnalyticsService
 from app.api.dependencies import get_data_service, get_analytics_service
@@ -24,12 +32,12 @@ async def get_all_passengers(
         Return all passengers
     """
 
-    passengers = data_service.get_all_passengers()
+    passengers: list[Passenger] = data_service.get_all_passengers()
 
     logger.info(f"found {len(passengers)} passengers")
  
     return PassengersListResponse(
-        passengers=[passenger.model_dump() for passenger in passengers],
+        passengers=passengers,
         total_count=len(passengers)
     )
 
@@ -37,14 +45,14 @@ async def get_all_passengers(
 @passengers_router.get("/{passenger_id}", response_model=PassengerResponse | PassengerAttributesResponse)
 async def get_passenger(
     passenger_id: int,
-    attributes: list = Query([], description="Optional list of specific attributes to retrieve"),
+    attributes: Annotated[list[str], Query(description="Optional list of specific attributes to retrieve")] = [],
     data_service: DataService = Depends(get_data_service)
 ) -> PassengerResponse | PassengerAttributesResponse:
     """
         Get passenger by ID. Optionally specify attributes to get only those fields
     """
     
-    passenger = data_service.get_passenger_by_id(passenger_id)
+    passenger: Passenger = data_service.get_passenger_by_id(passenger_id)
 
     if not passenger:
         logger.error(f"passenger with ID {passenger_id} not found")
@@ -52,7 +60,14 @@ async def get_passenger(
     
     if not attributes:
         return PassengerResponse(data=passenger)
-    
+
+    try:
+        validate_attributes(attributes, Passenger.model_fields.keys())
+
+    except ValueError as exc:
+        logger.error(f"Invalid attributes requested: {exc}")
+        raise ValueError from exc
+
     result = data_service.get_passenger_attributes(passenger_id, attributes)
 
     return PassengerAttributesResponse(data=result)
@@ -60,7 +75,7 @@ async def get_passenger(
 
 @passengers_router.get("/analytics/fare-histogram", response_model=HistogramResponse)
 async def get_fare_histogram(
-    percentiles: int = Query(10, ge=5, le=100, description="Number of percentile divisions"),
+    percentiles: Annotated[int, Query(ge=5, le=100, description="Number of percentile divisions")] = 10,
     analytics_service: AnalyticsService = Depends(get_analytics_service)
 ) -> HistogramResponse:
     """

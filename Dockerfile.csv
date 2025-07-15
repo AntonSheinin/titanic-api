@@ -1,17 +1,10 @@
 FROM alpine:latest
 
-# Create data directory
-RUN mkdir -p /data
+RUN mkdir -p /seed
 
-# Copy CSV data
-COPY data/titanic.csv /data/
+COPY data/titanic.csv /seed/
 
-# Set permissions
-RUN chmod 644 /data/titanic.csv
+RUN chmod 644 /seed/titanic.csv
 
-# Set environment for API
 ENV DATA_PATH=/data/titanic.csv
 ENV DATA_TYPE=csv
-
-# Create volume mount point
-VOLUME ["/data"]

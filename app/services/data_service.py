@@ -4,11 +4,11 @@
 
 import os
 import logging
-from typing import List, Dict, Any
 from abc import ABC, abstractmethod
+from typing import Any
 
-from app.models.passenger import Passenger
-from app.utils.validators import validate_passenger_id, validate_attributes, validate_data_not_empty
+from app.schemas.responses import Passenger
+from app.schemas.validators import validate_attributes, validate_data_not_empty
 
 
 logger = logging.getLogger(__name__)
@@ -17,12 +17,47 @@ class DataLoader(ABC):
     """
         Abstract base class for data loaders
     """
-    
+
     @abstractmethod
-    def load_data(self) -> tuple[List[Dict[str, Any]], List[str]]:
+    def load_data(self) -> tuple[list[dict[str, Any]], list[str]]:
         """
             Load data and return (data, columns)
         """
+
+    @staticmethod
+    def _convert_types(row: dict) -> None:
+        """
+            Convert string values in the row to appropriate Python types
+        """
+
+        numeric_fields = {"PassengerId", "Survived", "Pclass", "SibSp", "Parch"}
+        float_fields = {"Age", "Fare"}
+        null_values = {"", "None", "NULL", "null", "none", "Null", "NONE"}
+
+        def safe_convert(value, type_func, field):
+            """
+                Helper function
+            """
+
+            if value in null_values or value is None:
+                return None
+
+            try:
+                return type_func(value)
+
+            except (ValueError, TypeError):
+                logger.warning(f"Could not convert {field}='{value}' to {type_func.__name__} for passenger {row.get('PassengerId', 'unknown')}")
+                return None
+
+        for field in row:
+            if field in numeric_fields:
+                row[field] = safe_convert(row[field], int, field)
+
+            elif field in float_fields:
+                row[field] = safe_convert(row[field], float, field)
+
+            elif str(row[field]).strip() in null_values:
+                row[field] = None
         
 
 class CSVDataLoader(DataLoader):
@@ -33,15 +68,14 @@ class CSVDataLoader(DataLoader):
     def load_data(self) -> tuple:
         import csv
         
-        csv_path = os.getenv("DATA_PATH", "/data/titanic.csv")
+        csv_path = "/data/titanic.csv"
         
         try:
-            with open(csv_path, 'r') as file:
+            with open(csv_path) as file:
                 reader = csv.DictReader(file)
                 columns = reader.fieldnames or []
                 data = list(reader)
                 
-                # Convert types for each row
                 for row in data:
                     self._convert_types(row)
                 
@@ -54,46 +88,18 @@ class CSVDataLoader(DataLoader):
         except Exception as exc:
             logger.exception(f"Error reading CSV file: {exc}")
             raise ValueError(f"Error reading CSV file: {exc}")
-    
-    def _convert_types(self, row: dict) -> None:
-        """
-            Convert string values to appropriate types
-        """
-
-        numeric_fields = ["PassengerId", "Survived", "Pclass", "SibSp", "Parch"]
-        float_fields = ["Age", "Fare"]
-        
-        for field in numeric_fields:
-            if field in row and row[field]:
-                try:
-                    row[field] = int(row[field])
-
-                except (ValueError, TypeError):
-                    pass
-        
-        for field in float_fields:
-            if field in row and row[field]:
-                try:
-                    row[field] = float(row[field])
-
-                except (ValueError, TypeError):
-                    pass
-        
-        for key, value in row.items():
-            if value == "" or value == "None":
-                row[key] = None
 
 
 class SQLiteDataLoader(DataLoader):
     """
         SQLite database data loader
     """
-    
+
     def load_data(self) -> tuple:
         import sqlite3
-        
-        db_path = os.getenv("DATABASE_URL", "sqlite:///data/titanic.db").replace("sqlite://", "")
-        
+
+        db_path = "/data/titanic.db"
+
         try:
             with sqlite3.connect(db_path) as conn:
                 conn.row_factory = sqlite3.Row
@@ -102,16 +108,23 @@ class SQLiteDataLoader(DataLoader):
                 cursor.execute("SELECT * FROM passengers")
                 rows = cursor.fetchall()
                 data = [dict(row) for row in rows]
+
+                for row in data:
+                    self._convert_types(row)
                 
                 cursor.execute("PRAGMA table_info(passengers)")
                 columns_info = cursor.fetchall()
                 columns = [col[1] for col in columns_info]
                 
                 return data, columns
-                
+
+        except sqlite3.Error as db_err:
+            logger.exception(f"SQLite error: {db_err}")
+            raise ValueError(f"SQLite error: {db_err}") from db_err
+
         except Exception as exc:
-            logger.exception(f"Error reading SQLite database: {exc}")
-            raise ValueError(f"Error reading SQLite database: {exc}")
+            logger.exception(f"Unexpected error reading SQLite database: {exc}")
+            raise ValueError(f"Unexpected error reading SQLite database: {exc}") from exc
 
 
 class DataLoaderFactory:
@@ -137,14 +150,6 @@ class DataLoaderFactory:
             raise ValueError(f"Unsupported data source: {data_source}")
         
         return loader_class()
-    
-    @classmethod
-    def register_loader(cls, data_source: str, loader_class: type) -> None:
-        """
-            Register new data loader type
-        """
-
-        cls._loaders[data_source] = loader_class
 
 
 class DataService:
@@ -153,8 +158,8 @@ class DataService:
     """
     
     def __init__(self):
-        self.data: List[Dict[str, Any]] = []
-        self.columns: List[str] = []
+        self.data: list[dict[str, any]] = []
+        self.columns: list[str] = []
         self._load_data()
     
     def _load_data(self) -> None:
@@ -185,7 +190,8 @@ class DataService:
             except Exception as exc:
                 logger.warning(f"Skipping invalid passenger record: {exc}")
                 continue
-
+        
+        logger.info(f"found {len(passengers)} passengers")
         return passengers
     
     def get_passenger_by_id(self, passenger_id: int) -> Passenger | None:
@@ -193,8 +199,6 @@ class DataService:
             Get passenger by ID
         """
 
-        validate_passenger_id(passenger_id)
-        
         for row in self.data:
             if row.get("PassengerId") == passenger_id:
                 try:
@@ -211,9 +215,6 @@ class DataService:
             Get specific passenger attributes
         """
 
-        validate_passenger_id(passenger_id)
-        validate_attributes(attributes, self.columns)
-        
         for row in self.data:
             if row.get("PassengerId") == passenger_id:
                 return {attr: row.get(attr) for attr in attributes}
@@ -229,8 +230,8 @@ class DataService:
 
         for row in self.data:
             fare = row.get("Fare")
-            if fare is not None and isinstance(fare, (int, float)) and fare >= 0:
-                fare_values.append(float(fare))
+            if fare is not None:
+                fare_values.append(fare)
 
         return fare_values
     

@@ -11,8 +11,8 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from app.models.responses import APIInfoResponse
-from app.api.endpoints.passengers import passengers_router
+from app.schemas.responses import APIInfoResponse
+from app.api.routes import passengers_router
 from app.api.dependencies import get_data_service
 
 
@@ -49,11 +49,6 @@ def validate_configuration() -> None:
     """
 
     data_source = os.getenv("DATA_SOURCE", "csv")
-    percentiles = int(os.getenv("DEFAULT_HISTOGRAM_PERCENTILES", "10"))
-    
-    if percentiles not in range(5, 101):
-        logger.error("DEFAULT_HISTOGRAM_PERCENTILES must be between 1 and 100")
-        raise ValueError("DEFAULT_HISTOGRAM_PERCENTILES must be between 1 and 100")
     
     if data_source not in ["csv", "sqlite"]:
         logger.error(f"Unsupported DATA_SOURCE: {data_source}")
