@@ -7,6 +7,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.services.data_service import DataService
+from app.schemas.validators import validate_attributes
+from app.services.analytics_service import AnalyticsService
+from app.api.dependencies import get_data_service, get_analytics_service
 from app.schemas.responses import (
     HistogramResponse,
     PassengersListResponse,
@@ -14,11 +18,6 @@ from app.schemas.responses import (
     PassengerAttributesResponse,
     Passenger
 )
-from app.schemas.validators import validate_attributes
-from app.services.data_service import DataService
-from app.services.analytics_service import AnalyticsService
-from app.api.dependencies import get_data_service, get_analytics_service
-
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +56,8 @@ async def get_passenger(
     if not passenger:
         logger.error(f"passenger with ID {passenger_id} not found")
         raise HTTPException(status_code=404, detail="Passenger not found")
-    
-    if not attributes:
+
+    if not any(attr.strip() for attr in attributes):
         return PassengerResponse(data=passenger)
 
     try:
@@ -66,7 +65,7 @@ async def get_passenger(
 
     except ValueError as exc:
         logger.error(f"Invalid attributes requested: {exc}")
-        raise ValueError from exc
+        raise
 
     result = data_service.get_passenger_attributes(passenger_id, attributes)
 

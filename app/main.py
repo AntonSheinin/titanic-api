@@ -11,8 +11,8 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from app.schemas.responses import APIInfoResponse
 from app.api.routes import passengers_router
+from app.schemas.responses import APIInfoResponse
 from app.api.dependencies import get_data_service
 
 
@@ -88,7 +88,7 @@ def root() -> APIInfoResponse:
     )
 
 @app.exception_handler(ValidationError)
-def validation_exception_handler(request, exc: ValidationError):
+async def validation_exception_handler(request, exc: ValidationError):
     """
         Validation error handler
     """
@@ -99,7 +99,7 @@ def validation_exception_handler(request, exc: ValidationError):
     )
 
 @app.exception_handler(ValueError)
-def value_error_handler(request, exc: ValueError):
+async def value_error_handler(request, exc: ValueError):
     """
         Value error handler
     """

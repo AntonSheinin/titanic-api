@@ -111,7 +111,11 @@ class AnalyticsService:
             
             logger.info(f"Generated fare histogram with {percentiles} percentiles for {len(fare_data)} passengers")
             return result
-            
+
+        except ValueError as exc:
+            logger.error(str(exc))
+            raise
+
         except Exception as exc:
             logger.error(f"Error generating fare histogram: {exc}")
-            raise ValueError from exc
+            raise

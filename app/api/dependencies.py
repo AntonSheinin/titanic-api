@@ -3,6 +3,7 @@
 """
 
 from functools import lru_cache
+
 from app.services.data_service import DataService
 from app.services.analytics_service import AnalyticsService
 

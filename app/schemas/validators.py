@@ -24,5 +24,5 @@ def validate_data_not_empty(data: list) -> None:
     """
         
     if not data:
-        logger.error("Empty data provided to validator")
+        logger.error("Empty data provided")
         raise ValueError("No data available")
