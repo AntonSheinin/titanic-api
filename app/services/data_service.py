@@ -143,7 +143,7 @@ class DataLoaderFactory:
             Create appropriate data loader
         """
 
-        return cls._loaders.get(data_source)
+        return cls._loaders.get(data_source)()
         
 
 class DataService:
