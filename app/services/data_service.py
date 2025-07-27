@@ -34,30 +34,20 @@ class DataLoader(ABC):
         float_fields = {"Age", "Fare"}
         null_values = {"", "None", "NULL", "null", "none", "Null", "NONE"}
 
-        def safe_convert(value, type_func, field):
-            """
-                Helper function
-            """
+        type_map = {field: int for field in numeric_fields}
+        type_map.update({field: float for field in float_fields})
 
-            if value in null_values or value is None:
-                return None
-
-            try:
-                return type_func(value)
-
-            except (ValueError, TypeError):
-                logger.warning(f"Could not convert {field}='{value}' to {type_func.__name__} for passenger {row.get('PassengerId', 'unknown')}")
-                return None
-
-        for field in row:
-            if field in numeric_fields:
-                row[field] = safe_convert(row[field], int, field)
-
-            elif field in float_fields:
-                row[field] = safe_convert(row[field], float, field)
-
-            elif str(row[field]).strip() in null_values:
+        for field, value in row.items():
+            if value in null_values or value is None or (isinstance(value, str) and value.strip() in null_values):
                 row[field] = None
+
+            elif field in type_map:
+                try:
+                    row[field] = type_map[field](value)
+                    
+                except (ValueError, TypeError):
+                    logger.warning(f"Could not convert {field}='{value}' to {type_map[field].__name__} for passenger {row.get('PassengerId', 'unknown')}")
+                    row[field] = None
         
 
 class CSVDataLoader(DataLoader):
@@ -97,31 +87,29 @@ class SQLiteDataLoader(DataLoader):
 
     def load_data(self) -> tuple:
         import sqlite3
-
+        
         db_path = "/data/titanic.db"
 
         try:
             with sqlite3.connect(db_path) as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                
+
                 cursor.execute("SELECT * FROM passengers")
-                rows = cursor.fetchall()
-                data = [dict(row) for row in rows]
+                data = [dict(row) for row in cursor.fetchall()]
 
                 for row in data:
                     self._convert_types(row)
-                
-                cursor.execute("PRAGMA table_info(passengers)")
-                columns_info = cursor.fetchall()
-                columns = [col[1] for col in columns_info]
-                
-                return data, columns
 
+                cursor.execute("PRAGMA table_info(passengers)")
+                columns = [col[1] for col in cursor.fetchall()]
+
+            return data, columns
+        
         except sqlite3.Error as db_err:
             logger.exception(f"SQLite error: {db_err}")
             raise ValueError(f"SQLite error: {db_err}") from db_err
-
+        
         except Exception as exc:
             logger.exception(f"Unexpected error reading SQLite database: {exc}")
             raise ValueError(f"Unexpected error reading SQLite database: {exc}") from exc
@@ -178,13 +166,11 @@ class DataService:
 
         for row in self.data:
             try:
-                passenger = Passenger(**row)
-                passengers.append(passenger)
+                passengers.append(Passenger(**row))
 
             except Exception as exc:
                 logger.warning(f"Skipping invalid passenger record: {exc}")
-                continue
-        
+                
         logger.info(f"found {len(passengers)} passengers")
         return passengers
     
@@ -193,16 +179,18 @@ class DataService:
             Get passenger by ID
         """
 
-        for row in self.data:
-            if row.get("PassengerId") == passenger_id:
-                try:
-                    return Passenger(**row)
-                
-                except Exception as exc:
-                    logger.exception(f"Invalid passenger data for ID {passenger_id}: {exc}")
-                    return None
-                
-        return None
+        row = next((r for r in self.data if r.get("PassengerId") == passenger_id), None)
+
+        if row is None:
+            logger.error(f"Passenger with ID {passenger_id} not found")
+            return None
+        
+        try:
+            return Passenger(**row)
+        
+        except Exception as exc:
+            logger.exception(f"Invalid passenger data for ID {passenger_id}: {exc}")
+            return None
     
     def get_passenger_attributes(self, passenger_id: int, attributes: list) -> dict | None:
         """

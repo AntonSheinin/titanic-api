@@ -29,7 +29,7 @@ class FareHistogramCalculator(AnalyticsCalculator):
         Calculator for fare histogram
     """
     
-    def calculate(self, data: list, percentiles: int = 10) -> HistogramResponse:
+    def calculate(self, data: list, percentiles: int) -> HistogramResponse:
         """
             Calculate fare histogram by percentiles
         """
@@ -38,9 +38,9 @@ class FareHistogramCalculator(AnalyticsCalculator):
             logger.error("No fare data available for histogram")
             raise ValueError("No fare data available for histogram")
         
-        fare_array = np.array(data)
+        fare_array = np.asarray(data)
 
-        boundaries = np.percentile(np.array(data), np.linspace(0, 100, percentiles + 1))
+        boundaries = np.percentile(fare_array, np.linspace(0, 100, percentiles + 1))
         
         histogram_data = []
 
@@ -102,20 +102,14 @@ class AnalyticsService:
         """
             Get fare histogram by percentiles
         """
-        
+
         try:
             fare_data = self.data_service.get_fare_data()
-            
-            fare_histogram_calculator = AnalyticsCalculatorFactory.create_calculator("fare_histogram")
-            result = fare_histogram_calculator.calculate(fare_data, percentiles=percentiles)
-            
+            calculator = AnalyticsCalculatorFactory.create_calculator("fare_histogram")
+            result = calculator.calculate(fare_data, percentiles=percentiles)
             logger.info(f"Generated fare histogram with {percentiles} percentiles for {len(fare_data)} passengers")
             return result
-
-        except ValueError as exc:
-            logger.error(str(exc))
-            raise
-
+        
         except Exception as exc:
             logger.error(f"Error generating fare histogram: {exc}")
             raise
