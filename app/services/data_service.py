@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from app.schemas.responses import Passenger
-from app.schemas.validators import validate_attributes, validate_data_not_empty
+from app.schemas.validators import validate_data_not_empty
 
 
 logger = logging.getLogger(__name__)
@@ -143,14 +143,8 @@ class DataLoaderFactory:
             Create appropriate data loader
         """
 
-        loader_class = cls._loaders.get(data_source)
-
-        if not loader_class:
-            logger.error(f"Unsupported data source: {data_source}")
-            raise ValueError(f"Unsupported data source: {data_source}")
+        return cls._loaders.get(data_source)
         
-        return loader_class()
-
 
 class DataService:
     """
@@ -235,9 +229,4 @@ class DataService:
 
         return fare_values
     
-    def get_columns(self) -> list:
-        """
-            Get available column names
-        """
-
-        return self.columns.copy()
+    

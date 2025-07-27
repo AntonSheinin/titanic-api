@@ -4,11 +4,11 @@ A FastAPI-based REST API for analyzing Titanic passenger data with support for m
 
 ## API Endpoints
 
-| Method | Endpoint                               | Description                       |
-|--------|----------------------------------------|-----------------------------------|
-| `GET`  | `/`                                    | API information                   |
-| `GET`  | `/docs`                                | Swagger API documentation         |
-| `GET`  | `/passengers/`                         | Get all passengers                |
-| `GET`  | `/passengers/{id}`                     | Get passenger by ID               |
-| `GET`  | `/passengers/{id}?attributes=Name,Age` | Get specific passenger attributes |
-| `GET`  | `/passengers/analytics/fare-histogram` | Generate fare histogram           |
+| Method | Endpoint                                          | Description                       |
+|--------|---------------------------------------------------|-----------------------------------|
+| `GET`  | `/`                                               | API information                   |
+| `GET`  | `/docs`                                           | Swagger API documentation         |
+| `GET`  | `/passengers/`                                    | Get all passengers                |
+| `GET`  | `/passengers/{id}`                                | Get passenger by ID               |
+| `GET`  | `/passengers/{id}?attributes=Name&attributes=Age` | Get specific passenger attributes |
+| `GET`  | `/passengers/analytics/fare-histogram`            | Generate fare histogram           |

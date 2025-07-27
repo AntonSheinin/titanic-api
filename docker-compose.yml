@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.${DATA_SOURCE:-csv}
-    command: ["sh", "-c", "cp /seed/titanic.db /data/titanic.db"]
+    command: ["sh", "-c", "cp /seed/titanic.${DATA_SOURCE:-csv} /data/titanic.${DATA_SOURCE:-csv}"]
     volumes:
       - titanic-data:/data
     
