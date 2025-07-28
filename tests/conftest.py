@@ -6,7 +6,6 @@ import pytest
 from pydantic import ValidationError
 from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
-from fastapi.responses import JSONResponse
 
 from app.schemas.responses import Passenger
 from app.services.data_service import DataService

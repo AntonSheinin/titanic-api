@@ -2,7 +2,6 @@
     API tests module
 """
 
-import pytest
 from fastapi import HTTPException
 
 
